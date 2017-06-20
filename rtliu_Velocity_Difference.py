@@ -67,8 +67,8 @@ def diffAnalysis(ds0, ds1, poi, poiv, cbname, fname):
 	ndiff = diff(npoi[0],npoi[1])
 
 	stats = diffstats(ndiff)
-	statsv = "Greatest Absolute Difference in {} = {}\n\
-		Sum of Squared Residuals (Measure of total discrepancy) = {}"\
+	statsv = "Greatest Absolute Difference in {} = {}" \
+		"\nSum of Squared Residuals (Measure of total discrepancy) = {}" \
 		.format(poiv,stats["absmaxr"],stats["RSSr"])
 
 	# plot(nx[0],ny[0],cbvely,nvely[0],"khv0") Uncomment asap
@@ -78,18 +78,8 @@ def diffAnalysis(ds0, ds1, poi, poiv, cbname, fname):
 ds = [yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0000"), \
 	yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0001")]
 
-ds[0].print_stats()
-ds[1].print_stats()
-# print(ds0.derived_field_list)
-# print(ds1.derived_field_list)
+# ds[0].print_stats()
+# ds[1].print_stats()
 
-# print(ds0.field_list)
-# # print(ds1.field_list)
-# # print(ds0.index.grid_left_edge)
-# g0 = ds0.index.grids[1]
-# g1 = ds1.index.grids[1]
-# print(g0["velz"][:,:,0])
-# print(g1["velz"][:,:,0])
-
-diffAnalysis(ds[0],ds[1],"velx","x-velocity","vel$_x$ (cm$\cdot$code length/code time","KH_velx_analysis")
-diffAnalysis(ds[0],ds[1],"vely","y-velocity","vel$_y$ (cm$\cdot$code length/code time","KH_vely_analysis")
+diffAnalysis(ds[0],ds[1],"velx","x-velocity","vel$_x$ (cm$\cdot$code length/code time)","KH_velx_analysis")
+diffAnalysis(ds[0],ds[1],"vely","y-velocity","vel$_y$ (cm$\cdot$code length/code time)","KH_vely_analysis")
