@@ -146,5 +146,5 @@ ds = [yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0000"), \
 
 diffAnalysis(ds[0],ds[1],"velx","x-velocity","vel$_x$ (cm$\cdot$code length/code time)","KH_velx_analysis")
 diffAnalysis(ds[0],ds[1],"vely","y-velocity","vel$_y$ (cm$\cdot$code length/code time)","KH_vely_analysis")
-fieldAnalysis(ds[0],vorticity,"Vorticity","\\vec{\\omega} (rad/second)","KH_vort_analysis_0")
-fieldAnalysis(ds[1],vorticity,"Vorticity","\\vec{\\omega} (rad/second)","KH_vort_analysis_1")
+fieldAnalysis(ds[0],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_0")
+fieldAnalysis(ds[1],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_1")
