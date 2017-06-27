@@ -262,6 +262,8 @@ def hessian_old(ds, c):
     return([[dcdx2, dcdxy], [dcdxy, dcdy2]])
 
 
+# Argument is dataset and array of quantities
+# Returns array of hessian matrices
 def hessian(ds, c):
     try:
         ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
@@ -292,6 +294,8 @@ def hessian(ds, c):
     return(np.array(ah))
 
 
+# Argument is array of matrices
+# Returns array of determinants
 def dsDeterminant(a):
     ac = np.zeros((len(a), len(a[0])))
     for i in range(len(a)):
@@ -321,6 +325,8 @@ def gradient(poi_0, poi_1, option="log"):
     return(f)
 
 
+# Uses hessian and dsDeterminant to calculate 
+# determinant of hessian matrix of a certain quantity
 def classify(poi):
     def f(ad):
         hy = hessian(ad, poi)
@@ -450,8 +456,8 @@ ds = [yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0000"),
 # fieldAnalysisQuiver(ds[0],jacobian("velx", "vely")(ds[0])[0],"x-velocity Gradient","grad $\\vec{u}$","KH_grad_xquiv_analysis_")
 # fieldAnalysisQuiver(ds[1],jacobian("velx", "vely")(ds[0])[1],"y-velocity Gradient","grad $\\vec{u}$","KH_grad_yquiv_analysis_")
 
-fieldAnalysis(ds[0],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_0_TEMP")
-fieldAnalysis(ds[1],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_1_TEMP")
+# fieldAnalysis(ds[0],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_0_TEMP")
+# fieldAnalysis(ds[1],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_1_TEMP")
 
-# fieldAnalysis(ds[0],classify("vely"),"Determinant","det $\\vec{u}$","KH_Bxhessdet_analysis0_0")
-# fieldAnalysis(ds[1],classify("vely"),"Determinant","det $\\vec{u}$","KH_Bxhessdet_analysis0_1")
+fieldAnalysis(ds[0],classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_0")
+fieldAnalysis(ds[1],classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_1")
