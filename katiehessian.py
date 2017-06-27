@@ -203,7 +203,7 @@ def main():
 	#creates Hessian matrix for x velocity for file 1
 	extrema(hess(xcoords, ycoords, velx))
 
-	#creates Hessian marix for y velocity for file 1
+	##creates Hessian marix for y velocity for file 1
 	print(extrema(hess(xcoords, ycoords, vely)))
 
 
