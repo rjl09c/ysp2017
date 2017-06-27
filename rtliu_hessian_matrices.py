@@ -107,12 +107,6 @@ def diffstats(ndiff):
     RSS = 0
     for row in ndiff:
         for i in row:
-            # if i < velymin:
-            #   velymin = i
-            # if i > velymax:
-            #   velymax = i
-            # if abs(i) < velyabsmin:
-            #   velyabsmin = abs(i)
             if abs(float(i)) > absmax:
                 absmax = abs(float(i))
 
@@ -132,7 +126,7 @@ def diffAnalysis(ds0, ds1, poi, poiv, cbname, fname):
     ad1 = ds1.covering_grid(level=0, left_edge=ds1.index.grids[0].LeftEdge,
                             dims=ds1.domain_dimensions)
 
-    # Retrive relevant data from grid: x, y, vely
+    # Retrive relevant data from grid: x, y, poi
     nx = [np.array(ad0["x"]), np.array(ad1["x"])]
     ny = [np.array(ad0["y"]), np.array(ad1["y"])]
 
@@ -157,7 +151,7 @@ def visualize(ds, poi, poiv, cbname, fname):
     ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
                           dims=ds.domain_dimensions)
 
-    # Retrive relevant data from grid: x, y, vely
+    # Retrive relevant data from grid: x, y, poi
     nx = np.array(ad["x"])
     ny = np.array(ad["y"])
 
@@ -190,60 +184,66 @@ def fieldAnalysisQuiver(ds, vf, foiv, cbname, fname):
     quiverPlot(x, y, vf, cbname, fname)
 
 
-def vorticity(ad):
-    x = np.array(ad["x"])
-    y = np.array(ad["y"])
-    hx = float(x[1, 0]-x[0, 0])
-    hy = float(y[0, 1]-y[0, 0])
+def vorticity(poi_0, poi_1):
+    def f(ad):
+        x = np.array(ad["x"])
+        y = np.array(ad["y"])
+        hx = float(x[1, 0]-x[0, 0])
+        hy = float(y[0, 1]-y[0, 0])
 
-    velx = np.array(ad["velx"])
-    vely = np.array(ad["vely"])
+        apoi_0 = np.array(ad[poi_0])
+        apoi_1 = np.array(ad[poi_1])
 
-    # dvelydx = np.zeros((len(x),len(x[0])))
-    # dvelxdy = np.zeros((len(x),len(x[0])))
-    dvelydx = finiteDiffX(x, y, vely)
-    dvelxdy = finiteDiffY(x, y, velx)
-    vort = np.zeros((len(x), len(x[0])))
+        # dvelydx = np.zeros((len(x),len(x[0])))
+        # dvelxdy = np.zeros((len(x),len(x[0])))
+        dpoi_1dx = finiteDiffX(x, y, apoi_1)
+        dpoi_0dy = finiteDiffY(x, y, apoi_0)
+        vort = np.zeros((len(x), len(x[0])))
 
-    # Finite differences used; with accuracy 2
-    for i in range(len(x)):
-        for j in range(len(x[i])):
-            # Calculates vorticity
-            vort[i, j] = dvelydx[i, j] - dvelxdy[i, j]
+        # Finite differences used; with accuracy 2
+        for i in range(len(x)):
+            for j in range(len(x[i])):
+                # Calculates vorticity
+                vort[i, j] = dpoi_1dx[i, j] - dpoi_0dy[i, j]
 
-            # Absolute Value
-            # vort[i, j] = abs(dvelydx[i, j] - dvelxdy[i, j])
+                # Absolute Value
+                # vort[i, j] = abs(dvelydx[i, j] - dvelxdy[i, j])
 
-            # Log Scale
-            # vort[i, j] = log(abs(dvelydx[i, j] - dvelxdy[i, j]))
+                # Log Scale
+                # vort[i, j] = log(abs(dvelydx[i, j] - dvelxdy[i, j]))
 
-    return(vort)
+        return(vort)
 
-
-def jacobian(ds):
-    try:
-        ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
-                              dims=ds.domain_dimensions)
-    except:
-        ad = ds
-
-    x = np.array(ad["x"])
-    y = np.array(ad["y"])
-    hx = float(x[1, 0]-x[0, 0])
-    hy = float(y[0, 1]-y[0, 0])
-
-    velx = np.array(ad["velx"])
-    vely = np.array(ad["vely"])
-
-    dvelxdx = finiteDiffX(x, y, velx)
-    dvelxdy = finiteDiffY(x, y, velx)
-    dvelydx = finiteDiffX(x, y, vely)
-    dvelydy = finiteDiffY(x, y, vely)
-
-    return([[dvelxdx, dvelxdy], [dvelydx, dvelydy]])
+    return(f)
 
 
-def hessian(ds, c):
+def jacobian(poi_0, poi_1):
+    def f(ds):
+        try:
+            ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
+                                  dims=ds.domain_dimensions)
+        except:
+            ad = ds
+
+        x = np.array(ad["x"])
+        y = np.array(ad["y"])
+        hx = float(x[1, 0]-x[0, 0])
+        hy = float(y[0, 1]-y[0, 0])
+
+        apoi_0 = np.array(ad[poi_0])
+        apoi_1 = np.array(ad[poi_1])
+
+        dpoi_0dx = finiteDiffX(x, y, apoi_0)
+        dpoi_0dy = finiteDiffY(x, y, apoi_0)
+        dpoi_1dx = finiteDiffX(x, y, apoi_1)
+        dpoi_1dy = finiteDiffY(x, y, apoi_1)
+
+        return([[dpoi_0dx, dpoi_0dy], [dpoi_1dx, dpoi_1dy]])
+
+    return(f)
+
+
+def hessian_old(ds, c):
     try:
         ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
                               dims=ds.domain_dimensions)
@@ -262,7 +262,7 @@ def hessian(ds, c):
     return([[dcdx2, dcdxy], [dcdxy, dcdy2]])
 
 
-def hessian2(ds, c):
+def hessian(ds, c):
     try:
         ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
                               dims=ds.domain_dimensions)
@@ -292,18 +292,41 @@ def hessian2(ds, c):
     return(np.array(ah))
 
 
-def gradient(ad):
-    j = jacobian(ad)
-    dvelxdx = j[0][0]
-    dvelydy = j[1][1]
-    gradMag = np.zeros((len(j[0][0]), len(j[0][0][0])))
+def dsDeterminant(a):
+    ac = np.zeros((len(a), len(a[0])))
+    for i in range(len(a)):
+        for j in range(len(a[i])):
+            m = a[i][j]
+            det = m[0][0]*m[1][1] - m[0][1]*m[1][0]
+            ac[i][j] = det
+    return(ac)
 
-    for i in range(len(gradMag)):
-        for j in range(len(gradMag[i])):
-            gradMag[i, j] = log(1+(dvelxdx[i, j]**2 + dvelydy[i, j]**2)**(0.5))
 
-    return(gradMag)
+def gradient(poi_0, poi_1, option="log"):
+    def f(ad):
+        j = jacobian(poi_0, poi_1)(ad)
+        duxdx = j[0][0]
+        duydy = j[1][1]
+        gradMag = np.zeros((len(j[0][0]), len(j[0][0][0])))
 
+        for i in range(len(gradMag)):
+            for j in range(len(gradMag[i])):
+                if option == "log":
+                    gradMag[i, j] = log(1+(duxdx[i, j]**2 + duydy[i, j]**2)**(0.5))
+                if option == "reg":
+                    gradMag[i, j] = (duxdx[i, j]**2 + duydy[i, j]**2)**(0.5)
+
+        return(gradMag)
+
+    return(f)
+
+
+def classify(poi):
+    def f(ad):
+        hy = hessian(ad, poi)
+        return(dsDeterminant(hy))
+
+    return(f)
 
 def finiteDiffX(ax, ay, ac):
     x = np.array(ax)
@@ -415,16 +438,20 @@ ds = [yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0000"),
 # visualize(ds[0],"vely","y-velocity","vel$_y$ (cm$\cdot$code length/code time)","KH_vely_visualization_0")
 # visualize(ds[1],"vely","y-velocity","vel$_y$ (cm$\cdot$code length/code time)","KH_vely_visualization_1")
 
-# fieldAnalysis(ds[0],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_0")
-# fieldAnalysis(ds[1],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_1")
+# fieldAnalysis(ds[0],vorticity("velx", "vely"),"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_0")
+# fieldAnalysis(ds[1],vorticity("velx", "vely"),"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_analysis_1")
 
-# fieldAnalysis(ds[0],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_log_analysis_0")
-# fieldAnalysis(ds[1],vorticity,"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_log_analysis_1")
+# fieldAnalysis(ds[0],vorticity("velx", "vely"),"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_log_analysis_0")
+# fieldAnalysis(ds[1],vorticity("velx", "vely"),"Vorticity","$\\vec{\\omega}$ (rad/second)","KH_vort_log_analysis_1")
 
-# fieldAnalysis(ds[0],gradient,"Gradient","grad $\\vec{u}$","KH_grad_log_analysis2_0")
-# fieldAnalysis(ds[1],gradient,"Gradient","grad $\\vec{u}$","KH_grad_log_analysis2_1")
+# fieldAnalysis(ds[0],gradient("velx", "vely"),"Gradient","grad $\\vec{u}$","KH_grad_log_analysis2_0")
+# fieldAnalysis(ds[1],gradient("velx", "vely"),"Gradient","grad $\\vec{u}$","KH_grad_log_analysis2_1")
 
-# fieldAnalysisQuiver(ds[0],jacobian(ds[0])[0],"x-velocity Gradient","grad $\\vec{u}$","KH_grad_xquiv_analysis_")
-# fieldAnalysisQuiver(ds[1],jacobian(ds[0])[1],"y-velocity Gradient","grad $\\vec{u}$","KH_grad_yquiv_analysis_")
+# fieldAnalysisQuiver(ds[0],jacobian("velx", "vely")(ds[0])[0],"x-velocity Gradient","grad $\\vec{u}$","KH_grad_xquiv_analysis_")
+# fieldAnalysisQuiver(ds[1],jacobian("velx", "vely")(ds[0])[1],"y-velocity Gradient","grad $\\vec{u}$","KH_grad_yquiv_analysis_")
 
-h = hessian2(ds[0], "velx")
+fieldAnalysis(ds[0],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_0_TEMP")
+fieldAnalysis(ds[1],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_1_TEMP")
+
+# fieldAnalysis(ds[0],classify("vely"),"Determinant","det $\\vec{u}$","KH_Bxhessdet_analysis0_0")
+# fieldAnalysis(ds[1],classify("vely"),"Determinant","det $\\vec{u}$","KH_Bxhessdet_analysis0_1")
