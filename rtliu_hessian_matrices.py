@@ -217,7 +217,7 @@ def vorticity(poi_0, poi_1):
     return(f)
 
 
-def jacobian(poi_0, poi_1):
+def jacobian_sep(poi_0, poi_1):
     def f(ds):
         try:
             ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
@@ -239,6 +239,60 @@ def jacobian(poi_0, poi_1):
         dpoi_1dy = finiteDiffY(x, y, apoi_1)
 
         return([[dpoi_0dx, dpoi_0dy], [dpoi_1dx, dpoi_1dy]])
+
+    return(f)
+
+
+def jacobian(poi_0, poi_1):
+    def f(ds):
+        try:
+            ad = ds.covering_grid(level=0, left_edge=ds.index.grids[0].LeftEdge,
+                                  dims=ds.domain_dimensions)
+        except:
+            ad = ds
+
+        x = np.array(ad["x"])
+        y = np.array(ad["y"])
+        hx = float(x[1, 0]-x[0, 0])
+        hy = float(y[0, 1]-y[0, 0])
+
+        aj = [[[] for j in range(len(x[i]))] for i in range(len(x))]
+
+        apoi_0 = np.array(ad[poi_0])
+        apoi_1 = np.array(ad[poi_1])
+
+        dpoi_0dx = finiteDiffX(x, y, apoi_0)
+        dpoi_0dy = finiteDiffY(x, y, apoi_0)
+        dpoi_1dx = finiteDiffX(x, y, apoi_1)
+        dpoi_1dy = finiteDiffY(x, y, apoi_1)
+
+        # return([[dpoi_0dx, dpoi_0dy], [dpoi_1dx, dpoi_1dy]])
+        for i in range(len(x)):
+            for j in range(len(x[i])):
+                aj[i][j] = [[dpoi_0dx[i][j], dpoi_0dy[i][j]], [dpoi_1dx[i][j], dpoi_1dy[i][j]]]
+
+        return(aj)
+
+    return(f)
+
+
+# Argument is array of matrices
+# Returns array of classifications (- saddle, + max/min)
+def eigenProd(a):
+    ac = np.zeros((len(a), len(a[0])))
+    for i in range(len(a)):
+        for j in range(len(a[i])):
+            eig = np.linalg.eigvalsh(a[i][j])
+            ac[i][j] = eig[0]*eig[1]
+    return(ac)
+
+
+# Uses hessian and dsDeterminant to calculate 
+# determinant of hessian matrix of a certain quantity
+def je_classify(poi_0, poi_1):
+    def f(ad):
+        j = jacobian(poi_0, poi_1)(ad)
+        return(eigenProd(j))
 
     return(f)
 
@@ -308,7 +362,7 @@ def dsDeterminant(a):
 
 def gradient(poi_0, poi_1, option="log"):
     def f(ad):
-        j = jacobian(poi_0, poi_1)(ad)
+        j = jacobian_sep(poi_0, poi_1)(ad)
         duxdx = j[0][0]
         duydy = j[1][1]
         gradMag = np.zeros((len(j[0][0]), len(j[0][0][0])))
@@ -327,12 +381,13 @@ def gradient(poi_0, poi_1, option="log"):
 
 # Uses hessian and dsDeterminant to calculate 
 # determinant of hessian matrix of a certain quantity
-def classify(poi):
+def hd_classify(poi):
     def f(ad):
         hy = hessian(ad, poi)
         return(dsDeterminant(hy))
 
     return(f)
+
 
 def finiteDiffX(ax, ay, ac):
     x = np.array(ax)
@@ -459,5 +514,8 @@ ds = [yt.load("kh_mhd_Ma=0.803333333333At=0.0hdf5_chk_0000"),
 # fieldAnalysis(ds[0],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_0_TEMP")
 # fieldAnalysis(ds[1],gradient("magx", "magy", "reg"),"Gradient","grad $\\vec{u}$","KH_Bxygrad_analysis2_1_TEMP")
 
-fieldAnalysis(ds[0],classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_0")
-fieldAnalysis(ds[1],classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_1")
+fieldAnalysis(ds[0],je_classify("velx", "vely"),"Eigenvalues","eig $\\vec{u}$","KH_jacobeig_analysis0_0")
+fieldAnalysis(ds[1],je_classify("velx", "vely"),"Eigenvalues","eig $\\vec{u}$","KH_jacobeig_analysis0_1")
+
+# fieldAnalysis(ds[0],hd_classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_0")
+# fieldAnalysis(ds[1],hd_classify("vely"),"Determinant","det $\\vec{u}$","KH_hessdet_analysis0_1")
