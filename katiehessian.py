@@ -5,6 +5,7 @@ from matplotlib import pylab
 from yt.analysis_modules.halo_finding.api import HaloFinder
 from pylab import*
 from numpy import ma
+from numpy import linalg as LA
 
 
 #derives vel with respect to x
@@ -157,29 +158,100 @@ def determinant(allhessian):
 	return deters
 
 
-#finds extrema and saddlepoints; ADD IF GRADIENT == 0
-def extrema(allhessian):
+#find magnitude
+def magnitude(velx,vely, xcoords):
+	mag = np.zeros((320,320))
+	yderiv = derivy(vely, xcoords)
+	xderiv = derivx(velx, xcoords)
+
+	for i in range(len(xderiv)):
+
+		for x in range(len(xderiv)):
+			mag[i][x] = (((yderiv[i,x]**2) + (xderiv[i,x]**2))**.5)
+
+	return mag
+
+
+#finds extrema and saddlepoints
+def extrema(allhessian, velx, vely, xcoords):
 	deters = determinant(allhessian)
 	extrem = np.zeros((320,320))
+	mag = magnitude(velx, vely, xcoords)
 
 	for j in range(len(extrem)):
 
 		for k in range(len(extrem)):
 
-			if deters[j,k] < 0:
-				extrem[j, k] = -1
+			if mag[j][k] == 0:
+				if deters[j,k] < 0:
+					extrem[j, k] = -1
 
-			elif deters[j,k] == 0:
-				extrem[j,k] = 0
+				elif deters[j,k] == 0:
+					extrem[j,k] = 0
 
-			else:
-				x = allhessian[j,k]
-				if deter[j,k] > 0 and x[0,0] > 0:
-					extem[j, k] = -2
-				elif deter[j,k] > 0 and x[0,0] < 0:
-					extrem[j, k] = 2
+				else:
+					x = allhessian[j,k]
+					if deter[j,k] > 0 and x[0,0] > 0:
+						extem[j, k] = -2
+					elif deter[j,k] > 0 and x[0,0] < 0:
+						extrem[j, k] = 2
 	return extrem				
-						
+
+
+#creates jacobia matrix for each point						
+def jacobian(xcoords,velx, vely):
+	xx = derivx(velx, xcoords)
+	xy = derivy(velx, xcoords)
+	yx = derivx(vely, xcoords)
+	yy = derivy(vely, xcoords)
+	jacob = np.zeros ((2,2))
+	alljacob = [[[] for j in range(320)] for i in range(320)]
+
+	for j in range(len(xx)):
+
+		for k in range(len(xx)):
+
+			for i in range(len(jacob)):
+
+				for c in range(len(jacob)):
+
+					if c == 0 and i == 0:
+						jacob [i][c] = xx[j][k] 
+
+					elif c == 1 and i == 0:
+						jacob[i][c] = xy[j][k]
+
+					elif c ==1 and i == 1:
+						jacob[i][c] = yy[j][k]
+
+				alljacob[j][k] = jacob
+	alljacob = np.array(alljacob)			
+	return alljacob
+
+
+#obtains eigenvalues for all points' jacobian matrices and then checks the extrema
+def evals(alljacob):
+	eigen = [[[] for j in range(320)] for i in range(320)]
+	extrema = np.zeros((320,320))
+
+	for j in range(len(alljacob)):
+
+		for k in range(len(alljacob)):
+
+			x = alljacob[j,k]
+			eigen[j][k] = LA.eigvalsh(x)
+			y = eigen [j][k]
+
+			if y[0]>0 and y[1] > 0:
+				extrema[j,k] = 2
+
+			elif y[0]<0 and y[1] <0:
+				extrema[j,k] = -2
+
+			elif y[0]*y[1] < 0:
+				extrema[j,k] = 3
+
+	return extrema
 
 #loads files and calls hess function
 def main():
@@ -201,10 +273,18 @@ def main():
 	vely1 = np.array(dd["vely"])
 
 	#creates Hessian matrix for x velocity for file 1
-	extrema(hess(xcoords, ycoords, velx))
+	extrema(hess(xcoords, ycoords, velx), velx, vely, xcoords)
 
-	##creates Hessian marix for y velocity for file 1
-	print(extrema(hess(xcoords, ycoords, vely)))
+	#creates Hessian marix for y velocity for file 1
+	(extrema(hess(xcoords, ycoords, vely), velx, vely, xcoords))
+
+	#prints extrema for file1
+	print(evals(jacobian(xcoords, velx, vely)))
+	'''plt.figure()
+	plt.scatter(xcoords, ycoords,c=evals(jacobian(xcoords, velx, vely)), marker= 'o',edgecolor='none')
+	cb = plt.colorbar()
+	cb.set_label('Extrema')
+	plt.show()'''
 
 
 main()
